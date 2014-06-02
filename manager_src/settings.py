@@ -8,3 +8,12 @@ IP_PROTOCOL_ID = 8
 TCP_PROTOCOL_ID = 6
 ICMP_PROTOCOL_ID = 1
 UDP_PROTOCOL_ID = 17
+
+packet_sniffer_files = [ 'icmp.py',
+    'main.py',
+    'sniff_packet.py',
+    'udp.py',
+    'ethernet.py',
+    'ip.py',
+    'tcp.py'
+]
