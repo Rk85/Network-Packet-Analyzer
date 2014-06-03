@@ -1,2 +1,3 @@
 clean: 
-		rm -rf *.pyc
+		rm -rf client_src/*.pyc
+		rm -rf manager_src/*.pyc

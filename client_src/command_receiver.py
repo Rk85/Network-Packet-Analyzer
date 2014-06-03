@@ -34,10 +34,29 @@ if __name__ == "__main__":
     while True:
         connection, address = server_socket.accept()
         data = connection.recv(1024)
-        if data.strip("\r\n") == "start_packet_sniffing":
-           p = subprocess.Popen(['python', 'sniff_packet.py', 'interface', 'eth0', 'port', '80'])
+        print "Request", data
+        if data == "start_packet_sniffing":
+            connection.send("yes")
+            data = ""
+            while True:
+                data = data + connection.recv(1024)
+                print data
+                try:
+                   json_data = json.loads(data)
+                except ValueError:
+                   print "Decode error"
+                   continue
+                finally:
+                   print "decode_error_solved"
+                   sniffer_details = ['sudo', 'python', json_data['file_name'] ]
+                   sniffer_details.extend(json_data['arguements'])
+                   print sniffer_details
+                   p = subprocess.Popen(sniffer_details)
+                   connection.send("END OF FILE")
+                   break
         elif data.strip("\r\n") == "stop_packet_sniffing":
            p.send_signal(signal.SIGINT) 
+           connection.send("yes")
         elif data == "upload_packet_dump":
            #with open(settings.dump_file, 'rb') as dump_file:
            #    data = dump_file.read()
@@ -55,10 +74,11 @@ if __name__ == "__main__":
                 except ValueError:
                    print "Decode error"
                    continue
-                with open(json_data['file_name'], 'w') as sniffer_file:
-                     sniffer_file.write(json_data['file_content'])
-                connection.send("END OF FILE")
-                break
+                finally:
+                    with open(json_data['file_name'], 'w') as sniffer_file:
+                        sniffer_file.write(json_data['file_content'])
+                        connection.send("END OF FILE")
+                        break
         else:
            print "Unknown Command"
         connection.close()

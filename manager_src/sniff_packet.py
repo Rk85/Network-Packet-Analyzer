@@ -31,7 +31,7 @@ def dump_packet(header, packet):
     '''
        Dump the packets into the file
     '''
-    settings.dump_file.dump(header, packet)
+    settings.dump_file_writer.dump(header, packet)
  
 def main(argv, selected_device):
     # selected_device = get_selected_device() 
@@ -44,7 +44,7 @@ def main(argv, selected_device):
     #   timeout (in milliseconds)
     '''
     settings.packet_reader = pcapy.open_live(selected_device , 65536 , 1 , 0)
-    settings.dump_file = settings.packet_reader.dump_open("rk.txt")
+    settings.dump_file_writer = settings.packet_reader.dump_open(settings.dump_file)
     settings.packet_reader.setnonblock(True)
     filters = ' '.join(argv) if argv else ''
     try:

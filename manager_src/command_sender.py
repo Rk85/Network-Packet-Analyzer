@@ -29,7 +29,7 @@ def sigint_handler(signum, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint_handler)
     if "receive_packet_sniffer_file" in sys.argv:
-        for file_name in settings.packet_sniffer_files:
+        for file_name in settings.upload_sniffer_files:
             with open(file_name, 'r') as sniffer_file:
                 file_data = sniffer_file.read()
             send_data = {'file_name' :  file_name,
@@ -48,4 +48,25 @@ if __name__ == "__main__":
                     print "Unknown issue, quitting file upload"
                     sender_socket.close()
                     break
-                    
+    if "start_packet_sniffing" in sys.argv:
+        sender_socket = creat_socket()
+        sender_socket.connect(('127.0.0.1', 8081))
+        sender_socket.send("start_packet_sniffing")
+        response = sender_socket.recv(3)
+        print "RESP", response
+        if response == 'yes':                
+            send_data = { 'file_name' : settings.sniffer_file,
+                          'arguements' : ['interface', 'lo', 'port', '80']
+                        }
+            sender_socket.send(json.dumps(send_data))
+            response = sender_socket.recv(11)
+            if response == "END OF FILE":
+                print "Sniffing Program details have been sent"
+                sender_socket.close()
+    if "stop_packet_sniffing" in sys.argv:  
+        sender_socket = creat_socket()
+        sender_socket.connect(('127.0.0.1', 8081))
+        sender_socket.send("stop_packet_sniffing")
+        response = sender_socket.recv(3)
+        if response == 'yes':
+            print "Sniffer program successfully stopped"
