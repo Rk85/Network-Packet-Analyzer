@@ -36,7 +36,7 @@ if __name__ == "__main__":
         data = connection.recv(1024)
         print "Request", data
         if data == "start_packet_sniffing":
-            connection.send("yes")
+            connection.send("start")
             data = ""
             while True:
                 data = data + connection.recv(1024)
@@ -52,20 +52,29 @@ if __name__ == "__main__":
                    sniffer_details.extend(json_data['arguements'])
                    print sniffer_details
                    p = subprocess.Popen(sniffer_details)
-                   connection.send("END OF FILE")
+                   connection.send("end")
                    break
         elif data.strip("\r\n") == "stop_packet_sniffing":
            p.send_signal(signal.SIGINT) 
-           connection.send("yes")
+           connection.send("done")
         elif data == "upload_packet_dump":
-           #with open(settings.dump_file, 'rb') as dump_file:
-           #    data = dump_file.read()
-           #    connection.send(data)
-           pass
+           connection.send("start")
+           with open(settings.dump_file, 'rb') as dump_file:
+               data = dump_file.read()
+            connection.send(len(data))
+            connection.send(data)
+            response = connection.recv(13)
+            if response == 'file received':
+                connection.send("end")
         elif data == "send_packet_stats":
-           pass
+           connection.send("start")
+           send_data = { 'stats': 'yes'}
+           sender_socket.send(json.dumps(send_data))
+           response = connection.recv(14)
+           if response == "stats received"
+                connection.send("end")
         elif data == "receive_packet_sniffer_file":
-            connection.send("yes")
+            connection.send("start")
             data = ""
             while True:
                 data = data + connection.recv(1024)
@@ -77,7 +86,7 @@ if __name__ == "__main__":
                 finally:
                     with open(json_data['file_name'], 'w') as sniffer_file:
                         sniffer_file.write(json_data['file_content'])
-                        connection.send("END OF FILE")
+                        connection.send("end")
                         break
         else:
            print "Unknown Command"
