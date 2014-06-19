@@ -9,17 +9,17 @@ Application.Routing = {
 				this.get("#/clients/add", function(context){
 					var url = "/clients/add"
 					Application.Tab.addTab("New Client Add" , url );
-					context.log("NEW");
+					context.log("ADD");
 				});
 				this.get("#/clients/show", function(context){
 					var url = "/clients/show"
 					Application.Tab.addTab("Configured Clients" , url );
-					context.log("NEW");
+					context.log("SHOW");
 				});
 				this.get("#/clients/stats", function(context){
 					var url = "/client/stats"
 					Application.Tab.addTab("Clients Statistics" , url );
-					context.log("NEW");
+					context.log("STATS");
 				});
 				this.get("#/help", function(context){
 					context.log("#/help");

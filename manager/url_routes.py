@@ -81,3 +81,43 @@ def add_client():
             resp = make_response(jsonify(response_data), 400)
         return resp
 
+@web_routes.route('/add/rule', methods=['POST'])
+def add_client_rule():
+    """
+		Adds the packet sniffing rules of the clients
+    """
+    url = settings.BASE_URL + "/" 
+    form_data = request.json if request.json else request.form
+    if form_data.get('client_rules'):
+        for rule in form_data.get('client_rules'):
+            doc_url = url + rule.get('host_name')
+            result = retrive_document_details({
+              'url': doc_url
+            })
+            if result.get('response_code') != 200:
+                resp_text = "client details not present for {0}".format(rule.get('host_name', ''))
+                response_data = { 'post_response': { 'response_text' : resp_text}}
+                resp = make_response(jsonify(response_data), 400)
+                return resp
+            else:
+                document = result.get('document_data')
+                document['rule'] = rule.get('rule')
+                document_args = {
+                    'url': settings.BASE_URL + "/" + document['_id'],
+                    'data' : json.dumps(document),
+                    'override_doc' : True
+                }
+                
+                # upload the constructed document
+                result = upload_document(document_args)
+                # If the document upload is successful
+                if not result.get('status'):
+                    resp_text = "client details rule update failes for {0}".format(rule.get('host_name', ''))
+                    response_data = { 'post_response': { 'response_text' : resp_text}}
+                    resp = make_response(jsonify(response_data), 400)
+                    return resp
+    resp_text = "Successfully updated rule for all the selected clients"
+    response_data = { 'post_response': { 'response_text' : resp_text}}
+    resp = make_response(jsonify(response_data), 200)
+    return resp
+    

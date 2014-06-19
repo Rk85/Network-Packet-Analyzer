@@ -34,8 +34,10 @@ if __name__ == "__main__":
     while True:
         connection, address = server_socket.accept()
         data = connection.recv(1024)
-        print "Request", data
-        if data == "start_packet_sniffing":
+        print "Request", data, len(data)
+        if data == "check_alive":
+            connection.send("yes")
+        elif data == "start_packet_sniffing":
             connection.send("start")
             data = ""
             while True:
@@ -55,11 +57,11 @@ if __name__ == "__main__":
                    connection.send("end")
                    break
         elif data.strip("\r\n") == "stop_packet_sniffing":
-           p.send_signal(signal.SIGINT) 
-           connection.send("done")
+            p.send_signal(signal.SIGINT) 
+            connection.send("done")
         elif data == "upload_packet_dump":
-           connection.send("start")
-           with open(settings.dump_file, 'rb') as dump_file:
+            connection.send("start")
+            with open(settings.dump_file, 'rb') as dump_file:
                data = dump_file.read()
             connection.send(len(data))
             connection.send(data)
@@ -67,11 +69,11 @@ if __name__ == "__main__":
             if response == 'file received':
                 connection.send("end")
         elif data == "send_packet_stats":
-           connection.send("start")
-           send_data = { 'stats': 'yes'}
-           sender_socket.send(json.dumps(send_data))
-           response = connection.recv(14)
-           if response == "stats received"
+            connection.send("start")
+            send_data = { 'stats': 'yes'}
+            sender_socket.send(json.dumps(send_data))
+            response = connection.recv(14)
+            if response == "stats received":
                 connection.send("end")
         elif data == "receive_packet_sniffer_file":
             connection.send("start")
@@ -89,5 +91,5 @@ if __name__ == "__main__":
                         connection.send("end")
                         break
         else:
-           print "Unknown Command"
+            print "Unknown Command"
         connection.close()

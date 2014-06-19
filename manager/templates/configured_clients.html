@@ -11,7 +11,7 @@
 				<table width=100% id="all_clients_table" class="display table table-striped table-bordered table-hover table-condensed">
 					<thead class="dataTableHeader">
 						<tr>
-                			<th><span class="offset1"> Select All</span><input class="offset1" type="checkbox" data-bind="checked: selectAll"></input></th>
+                			<th><span class="offset1"> Select All</span><input class="offset1" type="checkbox" data-bind="checked: clientSelectAll"></input></th>
 							<th>Host Name</th>
 							<th>IP</th>     
 							<th>Details</th>     
@@ -33,26 +33,67 @@
 					</tbody>
 				</table>
 			</div>
-			<a class="btn" data-toggle="modal" data-target="#addRule"> Add Rule </a>
+			<a class="btn" data-toggle="modal" data-bind="attr:{ href: '#'+rulePopUpId()}"> Add Rule </a>
 		</div>
 	</div>
 </div>
  
-<div class="modal fade model-dialog model-content" id="addRule">
+<div class="modal hide fade" data-bind="attr:{ id: rulePopUpId}" role="dialog" style="width: 60%">
 	<div class="modal-header">
     	<button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title" id= "myModalLabel">Modal title</h4>
+        <h4 align="center" class="modal-title" id= "myModalLabel">Add Rules</h4>
     </div>
-    <div class="modal-body">
-		<span>Rule</span> <input id="addRuleInput" class="typeahead offset1" type="text" placeholder="Type Rule"></input>
+    <div class="modal-body" style="height: 200px;">
+		<div data-bind="if:rules().length > 0">
+			<table width=100% id="rules_table" class="display table table-striped table-bordered table-hover table-condensed">
+				<thead>
+					<tr>
+                		<th><span> Select All</span><br><input type="checkbox" data-bind="checked: ruleSelectAll"></input></th>
+						<th>Rule Name</th>
+						<th>Value</th>     
+						<th>Condition</th>     
+					</tr>
+				</thead>
+				<tbody data-bind="foreach: rules">
+					<tr>
+						<td>
+			  				<input align="center" type="checkbox" data-bind="checked: selected"></input>
+						</td>
+						<td>
+              				<span data-bind="text: name"></span>
+						</td>
+						<td>
+							<input type="text", data-bind="value: ruleValue"></input>
+						</td>
+						<td style="width: 20%">
+							<input type="radio" value="and" data-bind="checked: conditionType">
+								<span>and</span>
+							</input>
+							<input class="offset2" type="radio" value="or" data-bind="checked: conditionType">
+								<span>or</span>
+							</input>
+						</td>
+					<tr>
+				</tbody>
+			</table>
+		</div>
     </div>
     <div class="modal-footer">
     	<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" data-bind="click: addRule">Add Rule</button>
+        <button type="button" class="btn btn-primary" data-bind="click: saveRule">Add Rule</button>
     </div>
 </div>
 <script>
 Application.namespace("Application.PacketAnalyzer");
+
+var ruleDetails = function rule(data){
+	var self = this;
+	self.name = ko.observable(data.name);
+    self.ruleValue = ko.observable();
+	self.conditionType = ko.observable();
+	self.selected = ko.observable()
+}
+
 var client = function client(data){
 	var self = this;
 	self.hostName = ko.observable(data.host_name);
@@ -70,58 +111,62 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 	self.clients = ko.observableArray( $.map(data.clients || [], function(clientData){
 			return new client(clientData.value);
 	} ));
+	self.rules = ko.observableArray($.map(data.rules || [], function(rule){
+			return new ruleDetails(rule);
+	}));
 	
-	self.selectAll = ko.observable(false);
-	self.selectAll.subscribe(function(value){
+	self.clientSelectAll = ko.observable(false);
+	self.clientSelectAll.subscribe(function(value){
 		$.each(self.clients() || [], function(index, client){
         	client.selected(value);
         });
 	});
-	self.showAddRule = ko.observable(false)
-	self.addRule = function(){
-	self.showAddRule(true)
-		alert("test");
+	self.ruleSelectAll = ko.observable(false);
+	self.ruleSelectAll.subscribe(function(value){
+		$.each(self.rules() || [], function(index, rule){
+        	rule.selected(value);
+        });
+	});
+	
+	self.rulePopUpId = ko.observable("rule-pop-up");
+	self.saveRule = function(){
+		self.uploadRule();
+		$("#" + self.rulePopUpId()).modal('hide');
 	}
-	var substringMatcher = function(strs) {
-  return function findMatches(q, cb) {
-    var matches, substringRegex;
- 
-    // an array that will be populated with substring matches
-    matches = [];
- 
-    // regex used to determine if a string contains the substring `q`
-    substrRegex = new RegExp(q, 'i');
- 
-    // iterate through the pool of strings and for any string that
-    // contains the substring `q`, add it to the `matches` array
-    $.each(strs, function(i, str) {
-      if (substrRegex.test(str)) {
-        // the typeahead jQuery plugin expects suggestions to a
-        // JavaScript object, refer to typeahead docs for more info
-        matches.push({ value: str });
-      }
-    });
- 
-    cb(matches);
-  };
-};
-	var planets = [ "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune" ]
-	//$('#addRuleInput').typeahead({
-	$('#addRuleInput.typeahead').typeahead({
-			hint: true,
-		  highlight: true,
-		  minLength: 1
-		},
-		{
-			name: 'planets',
-		  displayKey: 'value',
-		source: substringMatcher(planets)
-  	}
-	);
-		
+	
+	self.uploadRule = function uploadRule(){
+		var data = $.map(self.clients() || [], function(client){
+            if (client.selected()){
+				var clientRule = { 
+						host_name: client.hostName(),
+						rule: ''
+				}
+				$.map(self.rules() || [], function(rule){
+					if (rule.selected()){
+						clientRule.rule = clientRule.rule + " " + rule.ruleValue() + " " + rule.conditionType();
+					}
+				})
+				return clientRule;
+			}
+        });
+				
+		$.ajax({
+			url: "/clients/add/rule",
+			type: "POST",
+			data: ko.toJSON({client_rules: data}),
+			contentType: "application/json; charset=utf-8",
+            dataType: "json",
+			success: function(result) {
+						$.prompt("<h5 class='success'>" + result.post_response.response_text + "</h5>");
+                    }
+		}).fail(function(){
+			$.prompt("<h5 class='danger'>" + result.post_response.response_text + "</h5>");
+        })
+	}
 }
 
 var applyFormBindings = function(data, tab_id){
+	data.rules = [ {name: "Source IP"}, {name: "Source Port"}];
 	ko.applyBindings(new Application.PacketAnalyzer.AllClients(data, jQuery), $(tab_id)[0]);
 };
 
