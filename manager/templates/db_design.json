@@ -1,0 +1,13 @@
+{
+    "_id" : "_design/network_packet_analyzer",
+    "language" : "javascript",
+    "shows" : {
+        "post": "function(doc, req){}"
+    },
+    "views" : {
+        "all_clients" : {
+            "map": "function(doc) { emit(doc._id, doc) }"
+        }
+    }
+}
+        

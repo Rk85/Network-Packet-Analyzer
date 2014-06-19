@@ -1,0 +1,74 @@
+<div class="form">
+	<div class="row-fluid">
+        <div>
+			<div>
+				<h3 class="text-center"> Adding New Client</h3>
+			</div>
+			<div>
+				<form class="form-horizontal">
+					<div class="control-group">
+						<label class="control-label">Host Name</label>
+					    <div class="controls">
+			    			<input type="text" data-bind="value: hostName" placeholder="Host Name">
+						</div>
+				  	</div>
+					<div class="control-group">
+		  				<label class="control-label">Client IP</label>
+						<div class="controls"> 
+							<input type="text" data-bind="value: ip" placeholder="IP Address">
+						</div>
+					</div>
+					<div class="control-group">
+	 					<label class="control-label">Client Details</label>
+    					<div class="controls">
+							<textarea data-bind="value: clientDetails" > </textarea>
+		    			</div>
+				 	</div>
+					<div class="control-group">
+						<div class="controls"> 
+							<button class="btn" data-bind="click: submitData">Submit</button>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+Application.namespace("Application.PacketAnalyzer");
+Application.PacketAnalyzer.viewModel = function viewModel(data, $){
+    var self = this;
+	self.hostName = ko.observable();
+	self.clientDetails = ko.observable();
+	self.ip = ko.observable();
+
+    self.submitData = function submitData(data, event){
+		if ( self.hostName() && self.clientDetails() && self.ip() ) {
+			postData = { host_name : self.hostName(),
+					client_details : self.clientDetails(),
+					ip : self.ip(),
+					action: 'create'
+				}
+			$.ajax({ type: "POST",
+						url: "/clients/add",
+						data: ko.toJSON(postData),
+						contentType: "application/json; charset=utf-8",
+						dataType: "json",
+						success: function(result) {
+							$.prompt(result.post_response.response_text);
+						}
+					}).fail(function(result){
+                    var postResponse = result.responseJSON.post_response    
+           		    $.prompt(postResponse.response_text);
+			})
+			return;
+		}
+		$.prompt("Please fill all the required Fields");
+    };
+}
+
+var applyFormBindings = function(data, tab_id){
+	ko.applyBindings(new Application.PacketAnalyzer.viewModel(data, jQuery), $(tab_id)[0]);
+};
+
+</script>

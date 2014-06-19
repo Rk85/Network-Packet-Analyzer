@@ -1,0 +1,68 @@
+.ui-tabs .ui-tabs-nav /* Tab list panel */
+{
+background: lightblue;
+}
+
+#loader {
+ width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  position: fixed;
+  display: block;
+  opacity: 0.7;
+  background-color: #fff;
+  z-index: 99;
+  text-align: center;
+}
+
+#loading-image {
+   position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 100;
+}
+
+#application_tabs li .ui-icon-close { 
+float: left; 
+margin: 0.4em 0.2em 0 0; 
+cursor: pointer; 
+}
+
+.pull-left-corner
+{
+position:absolute;
+left:0px;
+}
+
+/* Wrapper for page content to push down footer */
+#footer
+{
+background: #ffffff;
+position: fixed;
+min-height: 9%;
+width: 100%;
+bottom: 0;
+}
+
+.side-bar-section {
+left:5px;
+top:46px;
+padding-top:20px;
+padding-bottom:100%;
+background-color: #C0C0C0;
+}
+.side-bar-section ul li{
+margin: 5px;
+border: 1px solid gray;
+background-color: lightblue;
+}
+
+.ui-tabs .ui-tabs-panel /* just in case you want to change the panel */
+{
+padding-top:20px;
+background: white;
+padding-bottom: 100%;
+}
+.form {
+}
