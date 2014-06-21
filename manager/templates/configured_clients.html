@@ -1,13 +1,19 @@
 <div>
-	<div class="row-fluid" data-bind="if: clients().length==0">
-		<h4 class="text-center"> No Clients Configured yet</h4>
+	<div align="center" class="row-fluid" data-bind="if: allClients().length==0">
+		<h4 class="text-info"> No Clients - Configured</h4>
 	</div>
-	<div class="row-fluid" data-bind="if: clients().length>0">
+	<div data-bind="if: allClients().length>0">
 		<div>
-			<div>
-				<h3 class="text-center"> All Clients </h3>
+			<div class="row-fluid">
+				<h3 class="text-center"> Configured Clients </h3>
 			</div>
-			<div >
+			<div class="row-fluid pull-left"> Show
+				<select data-bind="options: clientDisplayFilterRules, optionsText: 'name', value: selectedClientDisplayFilterRule"></select>
+			</div>
+			<div class="row-fluid" data-bind="if: displayClients().length==0">
+				<h4 class="text-info"> No clients at this state</h4>
+			</div>
+			<div class="row-fluid" data-bind="if: displayClients().length > 0">
 				<table width=100% id="all_clients_table" class="display table table-striped table-bordered table-hover table-condensed">
 					<thead class="dataTableHeader">
 						<tr>
@@ -18,7 +24,7 @@
 							<th>Status</th>
 						</tr>
 					</thead>
-					<tbody data-bind="foreach: clients">
+					<tbody data-bind="foreach: displayClients">
 						<tr>
 							<td>
 			  					<input type="checkbox" class="offset4"  data-bind="checked: selected"></input>
@@ -33,7 +39,11 @@
 					</tbody>
 				</table>
 			</div>
-			<a class="btn" data-toggle="modal" data-bind="attr:{ href: '#'+rulePopUpId()}"> Add Rule </a>
+			<div data-bind="if: enableActionButton">
+				<a class="btn" data-bind="visible:selectedClientDisplayFilterRule().id == 'new_add', attr:{ href: '#'+rulePopUpId()}" data-toggle="modal"> Add Rule </a>
+				<a class="btn" data-bind="click: startCapture, visible:selectedClientDisplayFilterRule().id == 'rule_configured' "> Start Capture </a>
+				<a class="btn" data-bind="click: stopCapture, visible:selectedClientDisplayFilterRule().id == 'capture_started' "> Stop Capture </a>
+			</div>
 		</div>
 	</div>
 </div>
@@ -44,7 +54,7 @@
         <h4 align="center" class="modal-title" id= "myModalLabel">Add Rules</h4>
     </div>
     <div class="modal-body" style="height: 200px;">
-		<div data-bind="if:rules().length > 0">
+		<div data-bind="if:allRules().length > 0">
 			<table width=100% id="rules_table" class="display table table-striped table-bordered table-hover table-condensed">
 				<thead>
 					<tr>
@@ -54,13 +64,13 @@
 						<th>Condition</th>     
 					</tr>
 				</thead>
-				<tbody data-bind="foreach: rules">
+				<tbody data-bind="foreach: allRules">
 					<tr>
 						<td>
 			  				<input align="center" type="checkbox" data-bind="checked: selected"></input>
 						</td>
 						<td>
-              				<span data-bind="text: name"></span>
+              				<span data-bind="text: displayName"></span>
 						</td>
 						<td>
 							<input type="text", data-bind="value: ruleValue"></input>
@@ -88,7 +98,8 @@ Application.namespace("Application.PacketAnalyzer");
 
 var ruleDetails = function rule(data){
 	var self = this;
-	self.name = ko.observable(data.name);
+	self.displayName = ko.observable(data.display_name);
+    self.ruleName = ko.observable(data.rule_name);
     self.ruleValue = ko.observable();
 	self.conditionType = ko.observable();
 	self.selected = ko.observable()
@@ -99,31 +110,24 @@ var client = function client(data){
 	self.hostName = ko.observable(data.host_name);
 	self.ip = ko.observable(data.ip);
 	self.details = ko.observable(data.details);
-	self.status = ko.observable(data.status || "Idle");
+	self.statusId = ko.observable(data.status_name || "new_add");
 	self.selected = ko.observable(false);
 	self.url = ko.computed(function(){
-		return '#/action/show/' + self.hostName();
+		return '#/clients/show/' + self.hostName();
 	})
 }
 Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 	var self = this;
 	
-	self.clients = ko.observableArray( $.map(data.clients || [], function(clientData){
+	self.allClients = ko.observableArray( $.map(data.clients || [], function(clientData){
 			return new client(clientData.value);
 	} ));
-	self.rules = ko.observableArray($.map(data.rules || [], function(rule){
+	self.allRules = ko.observableArray($.map(data.rules || [], function(rule){
 			return new ruleDetails(rule);
 	}));
-	
-	self.clientSelectAll = ko.observable(false);
-	self.clientSelectAll.subscribe(function(value){
-		$.each(self.clients() || [], function(index, client){
-        	client.selected(value);
-        });
-	});
 	self.ruleSelectAll = ko.observable(false);
 	self.ruleSelectAll.subscribe(function(value){
-		$.each(self.rules() || [], function(index, rule){
+		$.each(self.allRules() || [], function(index, rule){
         	rule.selected(value);
         });
 	});
@@ -134,16 +138,49 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 		$("#" + self.rulePopUpId()).modal('hide');
 	}
 	
+	self.clientDisplayFilterRules = ko.observableArray(data.client_filters);
+	self.selectedClientDisplayFilterRule = ko.observable(self.clientDisplayFilterRules()[0]);
+	self.clientSelectAll = ko.observable(false);
+	
+	self.displayClients = ko.computed(function(){
+		return ko.utils.arrayFilter(self.allClients(), function(client) {
+			if ( self.selectedClientDisplayFilterRule().id == 'all' ){
+				client.selected(false);
+				self.clientSelectAll(false);
+				return true;
+			}
+				client.selected(false);
+				self.clientSelectAll(false);
+				return client.statusId() == self.selectedClientDisplayFilterRule().id;
+			})
+	});
+	
+	self.clientSelectAll.subscribe(function(value){
+		$.each(self.displayClients() || [], function(index, client){
+        	client.selected(value);
+        });
+	});
+	
+	self.enableActionButton = ko.computed(function(){
+		return ko.utils.arrayFirst(self.displayClients(), function(client) {
+            return client.selected();
+        })
+	});
+	
 	self.uploadRule = function uploadRule(){
-		var data = $.map(self.clients() || [], function(client){
+		var data = $.map(self.displayClients() || [], function(client){
             if (client.selected()){
 				var clientRule = { 
 						host_name: client.hostName(),
-						rule: ''
-				}
-				$.map(self.rules() || [], function(rule){
+						rule: []
+						}
+				$.map(self.allRules() || [], function(rule){
 					if (rule.selected()){
-						clientRule.rule = clientRule.rule + " " + rule.ruleValue() + " " + rule.conditionType();
+						clientRule.rule.push({
+							rule_name : rule.ruleName(),
+							rule_value : rule.ruleValue(),
+							append_type : rule.conditionType()
+                        });
 					}
 				})
 				return clientRule;
@@ -153,20 +190,77 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 		$.ajax({
 			url: "/clients/add/rule",
 			type: "POST",
-			data: ko.toJSON({client_rules: data}),
+			data: ko.toJSON({clients: data}),
 			contentType: "application/json; charset=utf-8",
             dataType: "json",
 			success: function(result) {
-						$.prompt("<h5 class='success'>" + result.post_response.response_text + "</h5>");
-                    }
-		}).fail(function(){
-			$.prompt("<h5 class='danger'>" + result.post_response.response_text + "</h5>");
-        })
+                        $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+                    },
+			error: function(xHr, textStatus, httpStatus) {
+					if( xHr.status === 400){
+						result = $.parseJSON(xHr.responseText);
+			     		$.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+						return;
+					}
+					$.prompt('<h5 style="color: red" >Unknown Error</h5>');
+				}
+		})
+	}
+	
+	self.startCapture = function startCapture(){
+		var data = $.map(self.displayClients() || [], function(client){
+			if (client.selected()){
+				return client.hostName();
+			}
+		})
+		$.ajax({
+			url: "/clients/start/capture",
+			type: "POST",
+			data: ko.toJSON({clients: data}),
+			contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function(result) {
+                        $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+                    },
+			error: function(xHr, textStatus, httpStatus) {
+					if( xHr.status === 400){
+						result = $.parseJSON(xHr.responseText);
+			     		$.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+						return;
+					}
+					$.prompt('<h5 style="color: red" >Unknown Error</h5>');
+				}
+		});
+	}
+	
+	self.stopCapture = function stopCapture(){
+		var data = $.map(self.displayClients() || [], function(client){
+			if (client.selected()){
+				return client.hostName();
+			}
+		})
+		$.ajax({
+			url: "/clients/stop/capture",
+			type: "POST",
+			data: ko.toJSON({clients: data}),
+			contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function(result) {
+                        $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+                    },
+			error: function(xHr, textStatus, httpStatus) {
+					if( xHr.status === 400){
+						result = $.parseJSON(xHr.responseText);
+			     		$.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+						return;
+					}
+					$.prompt('<h5 style="color: red" >Unknown Error</h5>');
+				}
+		});
 	}
 }
 
 var applyFormBindings = function(data, tab_id){
-	data.rules = [ {name: "Source IP"}, {name: "Source Port"}];
 	ko.applyBindings(new Application.PacketAnalyzer.AllClients(data, jQuery), $(tab_id)[0]);
 };
 

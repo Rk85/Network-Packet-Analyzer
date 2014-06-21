@@ -68,8 +68,5 @@ def sigint_handler(signum, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint_handler)
-    if len(sys.argv) < 3 or sys.argv[1] != 'interface':
-        print "Please Provide sniff interface as first arguement"
-        sys.exit(0)
-    filter_options = sys.argv[3:] if len(sys.argv) > 3 else []
-    main(filter_options, sys.argv[2])
+    filter_options = sys.argv[1:] # if len(sys.argv) > 3 else []
+    main(filter_options, 'any')

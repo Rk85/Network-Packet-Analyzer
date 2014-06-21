@@ -54,16 +54,21 @@ Application.PacketAnalyzer.viewModel = function viewModel(data, $){
 						data: ko.toJSON(postData),
 						contentType: "application/json; charset=utf-8",
 						dataType: "json",
-						success: function(result) {
-							$.prompt(result.post_response.response_text);
-						}
-					}).fail(function(result){
-                    var postResponse = result.responseJSON.post_response    
-           		    $.prompt(postResponse.response_text);
-			})
+                        success: function(result) {
+                 			       $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+		                    },
+        				error: function(xHr, textStatus, httpStatus) {
+			                    if( xHr.status === 400){
+				                	   result = $.parseJSON(xHr.responseText);
+                				       $.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+				                       return;
+                    		}
+		                    $.prompt('<h5 style="color: red" >Unknown Error</h5>');
+        		        }
+					})
 			return;
 		}
-		$.prompt("Please fill all the required Fields");
+		$.prompt('<h5 style="color: red" >' + "Please fill all the required Fields" + "</h5>");
     };
 }
 

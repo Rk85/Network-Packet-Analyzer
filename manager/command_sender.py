@@ -5,6 +5,8 @@ import sys
 import settings
 import json
 
+SNIFFER_FOLDER = "sniffer"
+
 def creat_socket():
     '''
         Creats new socket and returns it to make new connection
@@ -27,21 +29,21 @@ def sigint_handler(signum, frame):
     sys.exit(0)
 
 if __name__ == "__main__":
-    argements = json.loads(sys.argv[1])
-    print argements
-    ip = argements['ip']
-    port = argements['port']
+    arguements = json.loads(sys.argv[1])
+    print arguements
+    ip = arguements['ip']
+    port = arguements['port']
     signal.signal(signal.SIGINT, sigint_handler)
-    if argements.get('command_to_send') == "check_alive":
+    if arguements.get('command_to_send') == "check_alive":
         sender_socket = creat_socket()
         sender_socket.connect((ip, port))
         sender_socket.send("check_alive")
         response = sender_socket.recv(3)
         if response == "yes":
             sender_socket.close()
-    if argements.get('command_to_send') == "receive_packet_sniffer_file":
+    if arguements.get('command_to_send') == "receive_packet_sniffer_file":
         for file_name in settings.upload_sniffer_files:
-            with open(file_name, 'r') as sniffer_file:
+            with open(SNIFFER_FOLDER + "/" + file_name, 'r') as sniffer_file:
                 file_data = sniffer_file.read()
             send_data = {'file_name' :  file_name,
                         'file_content' : file_data }
@@ -59,7 +61,7 @@ if __name__ == "__main__":
                     print "Unknown issue, quitting file upload"
                     sender_socket.close()
                     break
-    if argements.get('command_to_send') == "start_packet_sniffing":
+    if arguements.get('command_to_send') == "start_packet_sniffing":
         sender_socket = creat_socket()
         sender_socket.connect((ip, port))
         sender_socket.send("start_packet_sniffing")
@@ -67,21 +69,21 @@ if __name__ == "__main__":
         print "RESP", response
         if response == 'start':                
             send_data = { 'file_name' : settings.sniffer_file,
-                          'arguements' : ['interface', 'lo', 'port', '80']
+                          'arguements' : arguements['capture_rules']
                         }
             sender_socket.send(json.dumps(send_data))
             response = sender_socket.recv(3)
             if response == "end":
                 print "Sniffing Program details have been sent"
                 sender_socket.close()
-    if argements.get('command_to_send') == "stop_packet_sniffing":  
+    if arguements.get('command_to_send') == "stop_packet_sniffing":  
         sender_socket = creat_socket()
         sender_socket.connect((ip, port))
         sender_socket.send("stop_packet_sniffing")
         response = sender_socket.recv(3)
         if response == 'done':
             print "Sniffer program successfully stopped"
-    if argements.get('command_to_send') == "upload_packet_dump":
+    if arguements.get('command_to_send') == "upload_packet_dump":
         sender_socket = creat_socket()
         sender_socket.connect((ip, port))
         sender_socket.send("upload_packet_dump")
@@ -99,7 +101,7 @@ if __name__ == "__main__":
                 sender_socket.close()
             else:
                 print "Unknown issue while uploading packet dump"
-    if argements.get('command_to_send') == "send_packet_stats":
+    if arguements.get('command_to_send') == "send_packet_stats":
         sender_socket = creat_socket()
         sender_socket.connect((ip, port))
         sender_socket.send("send_packet_stats")

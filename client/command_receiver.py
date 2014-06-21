@@ -25,6 +25,8 @@ def sigint_handler(signum, frame):
     print 'Stop pressing the CTRL+C!'
     sys.exit(0)
 
+MAX_COUNT = 10
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint_handler)
     server_socket = creat_socket()
@@ -37,25 +39,45 @@ if __name__ == "__main__":
         print "Request", data, len(data)
         if data == "check_alive":
             connection.send("yes")
-        elif data == "start_packet_sniffing":
+        elif data == "receive_packet_sniffer_file":
+            start_count = 0
             connection.send("start")
             data = ""
-            while True:
+            while start_count <= MAX_COUNT:
+                data = data + connection.recv(1024)
+                try:
+                   json_data = json.loads(data)
+                except ValueError:
+                   print "Decode error"
+                   start_count = start_count + 1
+                   json_data = None
+                   continue
+                break
+            if json_data:
+                with open(json_data['file_name'], 'w') as sniffer_file:
+                    sniffer_file.write(json_data['file_content'])
+            connection.send("end")
+        elif data == "start_packet_sniffing":
+            start_count = 0
+            connection.send("start")
+            data = ""
+            while start_count <= MAX_COUNT:
                 data = data + connection.recv(1024)
                 print data
                 try:
                    json_data = json.loads(data)
                 except ValueError:
                    print "Decode error"
+                   start_count = start_count + 1
+                   json_data = None
                    continue
-                finally:
-                   print "decode_error_solved"
-                   sniffer_details = ['sudo', 'python', json_data['file_name'] ]
-                   sniffer_details.extend(json_data['arguements'])
-                   print sniffer_details
-                   p = subprocess.Popen(sniffer_details)
-                   connection.send("end")
-                   break
+                break
+            if json_data:
+                sniffer_details = ['sudo', 'python', json_data['file_name'] ]
+                sniffer_details.extend(json_data['arguements'])
+                print sniffer_details
+                p = subprocess.Popen(sniffer_details)
+            connection.send("end")
         elif data.strip("\r\n") == "stop_packet_sniffing":
             p.send_signal(signal.SIGINT) 
             connection.send("done")
@@ -75,21 +97,6 @@ if __name__ == "__main__":
             response = connection.recv(14)
             if response == "stats received":
                 connection.send("end")
-        elif data == "receive_packet_sniffer_file":
-            connection.send("start")
-            data = ""
-            while True:
-                data = data + connection.recv(1024)
-                try:
-                   json_data = json.loads(data)
-                except ValueError:
-                   print "Decode error"
-                   continue
-                finally:
-                    with open(json_data['file_name'], 'w') as sniffer_file:
-                        sniffer_file.write(json_data['file_content'])
-                        connection.send("end")
-                        break
         else:
             print "Unknown Command"
         connection.close()
