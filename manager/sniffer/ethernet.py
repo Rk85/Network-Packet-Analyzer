@@ -29,7 +29,7 @@ class EthHeader(object):
         self.proto = 0
         if pcapy.DLT_LINUX_SLL == device.datalink():
             self.hdr_length = 16
-            self.eth_header_start = 2
+            self.header_start = 2
     
     def eth_addr (self, a):
         '''

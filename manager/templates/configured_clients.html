@@ -34,13 +34,14 @@
 							</td>
 							<td data-bind="text: ip"></td>
 							<td data-bind="text: details"></td>
-							<td data-bind="text: status"></td>
+							<td data-bind="text: displayStatus"></td>
 						<tr>
 					</tbody>
 				</table>
 			</div>
 			<div data-bind="if: enableActionButton">
 				<a class="btn" data-bind="visible:selectedClientDisplayFilterRule().id == 'new_add', attr:{ href: '#'+rulePopUpId()}" data-toggle="modal"> Add Rule </a>
+				<a class="btn" data-bind="visible:selectedClientDisplayFilterRule().id == 'rule_configured', attr:{ href: '#'+rulePopUpId()}" data-toggle="modal"> Modify Rule </a>
 				<a class="btn" data-bind="click: startCapture, visible:selectedClientDisplayFilterRule().id == 'rule_configured' "> Start Capture </a>
 				<a class="btn" data-bind="click: stopCapture, visible:selectedClientDisplayFilterRule().id == 'capture_started' "> Stop Capture </a>
 			</div>
@@ -51,7 +52,7 @@
 <div class="modal hide fade" data-bind="attr:{ id: rulePopUpId}" role="dialog" style="width: 60%">
 	<div class="modal-header">
     	<button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 align="center" class="modal-title" id= "myModalLabel">Add Rules</h4>
+        <h4 align="center" class="modal-title" id= "myModalLabel">Packet Capture Rule Config</h4>
     </div>
     <div class="modal-body" style="height: 200px;">
 		<div data-bind="if:allRules().length > 0">
@@ -96,6 +97,12 @@
 <script>
 Application.namespace("Application.PacketAnalyzer");
 
+var statusMapper = {
+	"new_add" : "Rule Not Configured",
+	"rule_configured" : "Rule Configured",
+	"capture_started" : "Capture Started"
+}
+
 var ruleDetails = function rule(data){
 	var self = this;
 	self.displayName = ko.observable(data.display_name);
@@ -111,20 +118,36 @@ var client = function client(data){
 	self.ip = ko.observable(data.ip);
 	self.details = ko.observable(data.details);
 	self.statusId = ko.observable(data.status_name || "new_add");
+	self.displayStatus = ko.computed(function(){
+		if ( self.statusId() && self.statusId() in statusMapper ){
+			return statusMapper[self.statusId()];
+		}
+		return "Rule Not Configured";
+	});
 	self.selected = ko.observable(false);
 	self.url = ko.computed(function(){
 		return '#/clients/show/' + self.hostName();
-	})
+	});
 }
 Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 	var self = this;
 	
-	self.allClients = ko.observableArray( $.map(data.clients || [], function(clientData){
+	self.allClients = ko.observableArray([]);
+	self.allRules = ko.observableArray([]);
+	self.clientDisplayFilterRules = ko.observableArray([]);
+	self.selectedClientDisplayFilterRule = ko.observable();
+
+	self.initializeData = function intializeData(data){
+		self.allClients($.map(data.clients || [], function(clientData){
 			return new client(clientData.value);
-	} ));
-	self.allRules = ko.observableArray($.map(data.rules || [], function(rule){
+		} ));
+		self.allRules($.map(data.rules || [], function(rule){
 			return new ruleDetails(rule);
-	}));
+		}));
+		self.clientDisplayFilterRules(data.client_filters);
+		self.selectedClientDisplayFilterRule(self.clientDisplayFilterRules()[0]);
+	}
+	self.initializeData(data);
 	self.ruleSelectAll = ko.observable(false);
 	self.ruleSelectAll.subscribe(function(value){
 		$.each(self.allRules() || [], function(index, rule){
@@ -138,8 +161,6 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 		$("#" + self.rulePopUpId()).modal('hide');
 	}
 	
-	self.clientDisplayFilterRules = ko.observableArray(data.client_filters);
-	self.selectedClientDisplayFilterRule = ko.observable(self.clientDisplayFilterRules()[0]);
 	self.clientSelectAll = ko.observable(false);
 	
 	self.displayClients = ko.computed(function(){
@@ -166,6 +187,25 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
             return client.selected();
         })
 	});
+	
+	self.refreshPage = function refreshPage(msg){
+		$.ajax({
+			url: "/clients/show",
+			type: "GET",
+			success: function(result) {
+					self.initializeData(result.response_data);
+					$.prompt('<h5 class="alert-success" >' + msg + "</h5>");	
+                    },
+			error: function(xHr, textStatus, httpStatus) {
+					if( xHr.status === 400){
+						result = $.parseJSON(xHr.responseText);
+			     		$.prompt('<h5 class="alert-danger" > Unable to refresh the page</h5>');
+						return;
+					}
+					$.prompt('<h5 class="alert-danger" >Unknown Error</h5>');
+				}
+		});
+	}
 	
 	self.uploadRule = function uploadRule(){
 		var data = $.map(self.displayClients() || [], function(client){
@@ -194,15 +234,15 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 			contentType: "application/json; charset=utf-8",
             dataType: "json",
 			success: function(result) {
-                        $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+						self.refreshPage(result.post_response.response_text);
                     },
 			error: function(xHr, textStatus, httpStatus) {
 					if( xHr.status === 400){
 						result = $.parseJSON(xHr.responseText);
-			     		$.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+			     		$.prompt('<h5 class="alert-danger" >' + result.post_response.response_text + "</h5>");
 						return;
 					}
-					$.prompt('<h5 style="color: red" >Unknown Error</h5>');
+					$.prompt('<h5 class="alert-danger" >Unknown Error</h5>');
 				}
 		})
 	}
@@ -220,15 +260,15 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 			contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function(result) {
-                        $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+						self.refreshPage(result.post_response.response_text);
                     },
 			error: function(xHr, textStatus, httpStatus) {
 					if( xHr.status === 400){
 						result = $.parseJSON(xHr.responseText);
-			     		$.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+			     		$.prompt('<h5 class="alert-danger" >' + result.post_response.response_text + "</h5>");
 						return;
 					}
-					$.prompt('<h5 style="color: red" >Unknown Error</h5>');
+					$.prompt('<h5 class="alert-danger" >Unknown Error</h5>');
 				}
 		});
 	}
@@ -246,15 +286,15 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 			contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function(result) {
-                        $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+						self.refreshPage(result.post_response.response_text);
                     },
 			error: function(xHr, textStatus, httpStatus) {
 					if( xHr.status === 400){
 						result = $.parseJSON(xHr.responseText);
-			     		$.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+			     		$.prompt('<h5 class="alert-danger" >' + result.post_response.response_text + "</h5>");
 						return;
 					}
-					$.prompt('<h5 style="color: red" >Unknown Error</h5>');
+					$.prompt('<h5 class="alert-danger" >Unknown Error</h5>');
 				}
 		});
 	}

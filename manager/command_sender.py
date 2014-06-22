@@ -4,6 +4,7 @@ import signal
 import sys
 import settings
 import json
+from db_access import upload_document, retrive_document_details
 
 SNIFFER_FOLDER = "sniffer"
 
@@ -30,7 +31,6 @@ def sigint_handler(signum, frame):
 
 if __name__ == "__main__":
     arguements = json.loads(sys.argv[1])
-    print arguements
     ip = arguements['ip']
     port = arguements['port']
     signal.signal(signal.SIGINT, sigint_handler)
@@ -102,25 +102,41 @@ if __name__ == "__main__":
             else:
                 print "Unknown issue while uploading packet dump"
     if arguements.get('command_to_send') == "send_packet_stats":
+        max_count = 100
+        start_count = 0
         sender_socket = creat_socket()
         sender_socket.connect((ip, port))
         sender_socket.send("send_packet_stats")
         response = sender_socket.recv(5)
         if response == 'start':
             data = ""
-            while True:
+            while start_count <= max_count:
                 data = data + sender_socket.recv(1024)
                 try:
                    json_data = json.loads(data)
                 except ValueError:
                    print "Decode error"
+                   start_count = start_count + 1
+                   json_data = None
                    continue
-                finally:
-                    print json_data
-                    sender_socket.send("stats received")
-                    break
+                break
+            if json_data:
+                result = retrive_document_details({
+                        'url': arguements['url']
+                })
+                if result.get('response_code') == 200:
+                    document = result.get('document_data')
+                    document['stats'] = json_data
+                    document_args = {
+                        'url': arguements['url'],
+                        'data' : json.dumps(document),
+                        'override_doc' : True
+                    }
+                    upload_document(document_args)
+            sender_socket.send("stats received")
+            response = sender_socket.recv(3)
             if response == "end":
-                print "Packet dump is received"
+                print "Stats is received"
                 sender_socket.close()
             else:
                 print "Unknown issue while packet stats"

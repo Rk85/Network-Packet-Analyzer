@@ -17,7 +17,7 @@ Application.Routing = {
 					context.log("SHOW");
 				});
 				this.get("#/clients/stats", function(context){
-					var url = "/client/stats"
+					var url = "/clients/stats"
 					Application.Tab.addTab("Clients Statistics" , url );
 					context.log("STATS");
 				});

@@ -66,3 +66,11 @@ padding-bottom: 100%;
 }
 .form {
 }
+
+.alert-danger{
+	color: red;
+}
+
+.alert-success{
+	color: green;
+}

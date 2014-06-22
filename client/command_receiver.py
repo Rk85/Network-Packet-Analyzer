@@ -3,6 +3,7 @@ import subprocess
 import signal
 import sys
 import json
+import settings
 
 def creat_socket():
     '''
@@ -92,8 +93,13 @@ if __name__ == "__main__":
                 connection.send("end")
         elif data == "send_packet_stats":
             connection.send("start")
-            send_data = { 'stats': 'yes'}
-            sender_socket.send(json.dumps(send_data))
+            send_data = '{"result": "unknown"}'
+            p = subprocess.Popen(['python', settings.stats_collect_file])
+            p.wait()
+            if p.returncode == 0:
+                with open(settings.stats_file, 'r') as stats_file:
+                    send_data = stats_file.read()
+            connection.send(send_data.replace("'", "\""))
             response = connection.recv(14)
             if response == "stats received":
                 connection.send("end")

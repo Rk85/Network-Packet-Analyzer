@@ -1,5 +1,7 @@
 import socket
 import signal
+import fcntl
+import struct
 from struct import unpack
 import datetime
 import pcapy
@@ -18,6 +20,31 @@ from settings import (
     UDP_PROTOCOL_ID 
 )
 
+packet_stats = {
+                "total_packets": 0,
+                "total_recv_packets": 0,
+                "total_sent_packets": 0,
+                "total_data": 0,
+                "total_recv_data": 0,
+                "total_sent_data": 0
+}
+
+def get_ip_address_list():
+    ip_address_list = []
+    for device in pcapy.findalldevs():
+        if device != 'any':
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            ip_address_list.append(
+                socket.inet_ntoa(fcntl.ioctl(
+                    s.fileno(),
+                    0x8915,  # SIOCGIFADDR  
+                    struct.pack('256s', device[:15])
+                    )[20:24]
+                )
+            )
+    return ip_address_list
+
+SOURCE_IP_ADDRESS = get_ip_address_list()
 
 def parse_packet(header, packet) :
     '''
@@ -62,15 +89,23 @@ def parse_packet(header, packet) :
         
     if tot_hdr_size:     
         data_size = len(packet) - tot_hdr_size
-        print 'Data : ' + packet[tot_hdr_size:]
- 
+        # print 'Data : ' + packet[tot_hdr_size:]
+        packet_stats['total_packets'] = packet_stats['total_packets'] + 1
+        packet_stats['total_data'] = packet_stats['total_data'] + data_size
+        if ip_hdr.src_addr in SOURCE_IP_ADDRESS:
+            packet_stats["total_sent_packets"] = packet_stats["total_sent_packets"] + 1
+            packet_stats["total_sent_data"] = packet_stats["total_sent_data"] + data_size
+        else:
+            packet_stats["total_recv_packets"] = packet_stats["total_recv_packets"] + 1
+            packet_stats["total_recv_data"] = packet_stats["total_recv_data"] + data_size
 def main(argv):
     '''
         Main function to read packet from the dumped file
     '''
-    settings.packet_reader = pcapy.open_offline("rk.txt")
+    settings.packet_reader = pcapy.open_offline(settings.dump_file)
     settings.packet_reader.setnonblock(True)
-    filters = ' '.join(argv[1:] ) if len(argv) > 1 else ''
+    #filters = ' '.join(argv[1:] ) if len(argv) > 1 else ''
+    filters = ''
     try:
        settings.packet_reader.setfilter(filters)
     except pcapy.PcapError:
@@ -80,13 +115,19 @@ def main(argv):
  
     # start sniffing packets
     while(1) :
-        settings.packet_reader.dispatch(1, parse_packet)
+        packets_read = settings.packet_reader.dispatch(1, parse_packet)
+        if not packets_read:
+            with open(settings.stats_file, "w") as stats_file:
+                stats_file.write(str(packet_stats))
+            break
 
 def sigint_handler(signum, frame):
     '''
         Signal handler function to grace fully exit
     '''
     print 'Stop pressing the CTRL+C!'
+    with open(settings.stats_file, "w") as stats_file:
+        stats_file.write(str(packet_stats))
     sys.exit(0)
 
 

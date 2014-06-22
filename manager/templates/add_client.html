@@ -55,20 +55,20 @@ Application.PacketAnalyzer.viewModel = function viewModel(data, $){
 						contentType: "application/json; charset=utf-8",
 						dataType: "json",
                         success: function(result) {
-                 			       $.prompt('<h5 style="color: green" >' + result.post_response.response_text + "</h5>");
+                 			       $.prompt('<h5 class="alert-success" >' + result.post_response.response_text + "</h5>");
 		                    },
         				error: function(xHr, textStatus, httpStatus) {
 			                    if( xHr.status === 400){
 				                	   result = $.parseJSON(xHr.responseText);
-                				       $.prompt('<h5 style="color: red" >' + result.post_response.response_text + "</h5>");
+                				       $.prompt('<h5 class="alert-danger" >' + result.post_response.response_text + "</h5>");
 				                       return;
                     		}
-		                    $.prompt('<h5 style="color: red" >Unknown Error</h5>');
+		                    $.prompt('<h5 class="alert-danger" >Unknown Error</h5>');
         		        }
 					})
 			return;
 		}
-		$.prompt('<h5 style="color: red" >' + "Please fill all the required Fields" + "</h5>");
+		$.prompt('<h5 class="alert-danger" >' + "Please fill all the required Fields" + "</h5>");
     };
 }
 

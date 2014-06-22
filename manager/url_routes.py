@@ -256,3 +256,43 @@ def stop_packet_capture():
     response_data = { 'post_response': { 'response_text' : resp_text}}
     resp = make_response(jsonify(response_data), 200)
     return resp
+
+
+@web_routes.route('/stats', methods=['GET'])
+def show_client_statistics():
+    """
+        Show statistics of packets for all the clients
+    """
+    design = json.loads(settings.DESIGN_DATA)
+    url = settings.BASE_URL + "/" + design['_id'] + "/_view/all_clients"
+    result = retrive_document_details({
+              'url': url
+    })
+    clients = []
+    if request.method == 'GET':
+        if result.get('response_code') == 200:
+            result_data = result.get('document_data', {})
+            for client in result_data.get('rows'):
+                client = client.get('value')
+                client_url = settings.BASE_URL + "/" + client['_id']
+                args = json.dumps({
+                        'command_to_send' : 'send_packet_stats',
+                        'ip': client['ip'],
+                        'port': 8081,
+                        'url': client_url
+                })
+                p = subprocess.Popen(['python', 'command_sender.py', args])
+                p.wait()
+                client_result = retrive_document_details({'url': client_url})
+                if client_result.get('response_code') == 200:
+                    clients.append( client_result.get('document_data') )
+        response_data = {  'form' : render_template('client_stats.html'),
+                           'response_data': {
+                                                'clients': clients,
+                                                'rules': RULES,
+                                                'client_filters': CLIENT_DISPLAY_FILTERS
+                                        }
+                        }
+        resp = make_response(jsonify(response_data), 200)
+        return resp
+
