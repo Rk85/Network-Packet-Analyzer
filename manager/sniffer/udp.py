@@ -2,7 +2,8 @@ from struct import unpack
 
 class UdpHeader(object):
     '''
-        Returns all the details about the UDP protocol details/layer
+        Description : class to store the details of UDP protocol/layer
+       
         sample packet structure
         
          0      7 8     15 16    23 24    31  
@@ -20,7 +21,8 @@ class UdpHeader(object):
     
     def __init__(self, device):
         '''
-           Initialize the header details
+           Description : Initialize the UDP header details
+           
         '''
         self.device = device
         self.src_port = 0
@@ -30,9 +32,15 @@ class UdpHeader(object):
     
     def get_details(self, packet):
         '''
-          Returns the UDP Layer header details present 
-          in the given packet
+           Description : Assigns values to the UDP header class 
+                         attributes from the details present 
+                         in the given packet
+           
+           input_param : packet - packet received in the interface
+           input_type : bytes array
+           
         '''
+        
         udph = unpack('!HHHH' , packet)
          
         self.src_port = udph[0]

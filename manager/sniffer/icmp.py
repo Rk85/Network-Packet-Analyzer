@@ -3,7 +3,8 @@ from struct import unpack
 
 class IcmpHeader(object):
     '''
-        Returns all the details about the ICMP protocol details/layer
+        Description : class to store the details of ICMP protocol
+        
         sample packet structure
         
         0                   1                   2                   3
@@ -22,7 +23,8 @@ class IcmpHeader(object):
     
     def __init__(self, device):
         '''
-           Initialize the header details
+           Description : Initialize the ICMP header details
+           
         '''
         self.device = device
         self.type = 0
@@ -32,9 +34,15 @@ class IcmpHeader(object):
     
     def get_details(self, packet):
         '''
-           Returns the ICMP header details present 
-           in the given packet
+           Description : Assigns values to the ICMP header class 
+                         attributes from the details present 
+                         in the given packet
+           
+           input_param : packet - packet received in the interface
+           input_type : bytes array
+           
         '''
+        
         icmph = unpack('!BBH' , packet)
         self.type = icmph[0]
         self.code = icmph[1]

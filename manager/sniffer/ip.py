@@ -3,7 +3,8 @@ from struct import unpack
 
 class IPHeader(object):
     '''
-        Returns all the details about the IP protocol details/layer
+        Description : class to store the details of IP protocol/layer
+        
         sample packet structure
         
         0                   1                   2                   3   
@@ -28,7 +29,8 @@ class IPHeader(object):
     
     def __init__(self, device):
         '''
-           Initialize the header details
+           Description : Initialize the IP header details
+           
         '''
         self.device = device
         self.version = 0
@@ -40,8 +42,13 @@ class IPHeader(object):
     
     def get_details(self, packet):
         '''
-           Returns the IP Layer header details present 
-           in the given packet
+           Description : Assigns values to the IP header class 
+                         attributes from the details present 
+                         in the given packet
+           
+           input_param : packet - packet received in the interface
+           input_type : bytes array
+           
         '''
 
         iph = unpack('!BBHHHBBH4s4s' , packet)

@@ -4,6 +4,10 @@ from db_access import upload_document, retrive_document_details
 import settings
 import json
 import subprocess
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 RULES = [
 	{'display_name': "Sorce IP",
@@ -36,32 +40,54 @@ CLIENT_DISPLAY_FILTERS = [
 web_routes = Module(__name__, url_prefix="/clients", name="client_routes")
 
 @web_routes.route('/show', methods=['GET', 'POST'])
-def all_clients_details():
+@web_routes.route('/show/<client_id>', methods=['GET', 'POST'])
+def all_clients_details(client_id=None):
     """
-        Handle the clients display requests
+        Description : View fucntion to Handle the clients display requests
+        
+        input_param : client_id - configured host name of the client
+        input_type : string
+    
     """
-    design = json.loads(settings.DESIGN_DATA)
-    url = settings.BASE_URL + "/" + design['_id'] + "/_view/all_clients"
-       
+    url = settings.BASE_URL   
     if request.method == 'GET':
-        result = retrive_document_details({
-              'url': url
-        })
-        total_clients = result['document_data']['rows']
-        response_data = {  'form' : render_template('configured_clients.html'),
+        if not client_id:
+            design = json.loads(settings.DESIGN_DATA)
+            url = url + "/" + design['_id'] + "/_view/all_clients"
+            result = retrive_document_details({
+                   'url': url
+            })
+            total_clients = result['document_data']['rows']
+            response_data = {  'form' : render_template('configured_clients.html'),
                            'response_data': {
 												'clients': total_clients,
                                                 'rules': RULES,
                                                 'client_filters': CLIENT_DISPLAY_FILTERS
 										}
                         }
-        resp = make_response(jsonify(response_data), 200)
-        return resp
+            resp = make_response(jsonify(response_data), 200)
+            return resp
+        else:
+            url = url + "/" + client_id 
+            result = retrive_document_details({
+                   'url': url
+            })
+            total_clients = [result['document_data']]
+            response_data = {  'form' : render_template('configured_clients.html'),
+                           'response_data': {
+												'clients': total_clients,
+                                                'rules': RULES,
+                                                'client_filters': CLIENT_DISPLAY_FILTERS
+										}
+                        }
+            resp = make_response(jsonify(response_data), 200)
+            return resp
 
 @web_routes.route('/add', methods=['GET', 'POST'])
 def add_client():
     """
-        Handles the client addition requests
+        Description : View function to Handles the client addition requests
+    
     """
     if request.method == 'GET':
         response_data = {  'form' : render_template('add_client.html'),
@@ -83,7 +109,7 @@ def add_client():
         args = json.dumps({
             'command_to_send' : 'receive_packet_sniffer_file',
             'ip': document_data['ip'],
-             'port': 8081
+             'port': settings.client_port
         })
         p = subprocess.Popen(['python', 'command_sender.py', args])
         p.wait()
@@ -115,7 +141,8 @@ def add_client():
 @web_routes.route('/add/rule', methods=['POST'])
 def add_client_rule():
     """
-		Adds the packet sniffing rules of the clients
+        Description : View function to Add the packet sniffing rules of the clients
+    
     """
     url = settings.BASE_URL + "/" 
     form_data = request.json if request.json else request.form
@@ -157,7 +184,8 @@ def add_client_rule():
 @web_routes.route('/start/capture', methods=['POST'])
 def start_packet_capture():
     """
-		Starts the packet sniffing program in client machines
+        Description : View function to start the packet sniffing program in client machines
+    
     """
     url = settings.BASE_URL + "/" 
     form_data = request.json if request.json else request.form
@@ -190,7 +218,7 @@ def start_packet_capture():
                 args = json.dumps({
                         'command_to_send' : 'start_packet_sniffing',
                         'ip': document['ip'],
-                        'port': 8081,
+                        'port': settings.client_port,
                         'capture_rules': capture_rules
                 })
                 p = subprocess.Popen(['python', 'command_sender.py', args])
@@ -213,7 +241,8 @@ def start_packet_capture():
 @web_routes.route('/stop/capture', methods=['POST'])
 def stop_packet_capture():
     """
-		Stops the packet sniffing program in client machines
+        Description : View function to stop the packet sniffing program in client machines
+    
     """
     url = settings.BASE_URL + "/" 
     form_data = request.json if request.json else request.form
@@ -239,7 +268,7 @@ def stop_packet_capture():
                 args = json.dumps({
                         'command_to_send' : 'stop_packet_sniffing',
                         'ip': document['ip'],
-                        'port': 8081,
+                        'port': settings.client_port,
                 })
                 p = subprocess.Popen(['python', 'command_sender.py', args])
                 p.wait()
@@ -261,7 +290,8 @@ def stop_packet_capture():
 @web_routes.route('/stats', methods=['GET'])
 def show_client_statistics():
     """
-        Show statistics of packets for all the clients
+        Description : View function to show statistics of packets for all the clients
+    
     """
     design = json.loads(settings.DESIGN_DATA)
     url = settings.BASE_URL + "/" + design['_id'] + "/_view/all_clients"
@@ -278,7 +308,7 @@ def show_client_statistics():
                 args = json.dumps({
                         'command_to_send' : 'send_packet_stats',
                         'ip': client['ip'],
-                        'port': 8081,
+                        'port': settings.client_port,
                         'url': client_url
                 })
                 p = subprocess.Popen(['python', 'command_sender.py', args])

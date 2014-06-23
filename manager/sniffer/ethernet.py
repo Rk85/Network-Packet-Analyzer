@@ -4,7 +4,8 @@ import pcapy
 
 class EthHeader(object):
     '''
-        Returns all the details about the data link protocol details/layer
+        Description : class to store the details of ethernet link protocol/layer
+        
         sample packet structure
         
           0                6            12         14                         1514     1518
@@ -19,7 +20,8 @@ class EthHeader(object):
     '''
     def __init__(self, device):
         '''
-           Initialize the header details
+           Description : Initialize the ethernet header details
+           
         '''
         self.hdr_length = 14
         self.header_start = 0
@@ -27,21 +29,35 @@ class EthHeader(object):
         self.dest_mac = None
         self.src_mac = None
         self.proto = 0
+        # For virtual interfaces,extra two bytes added to ethernet header
         if pcapy.DLT_LINUX_SLL == device.datalink():
             self.hdr_length = 16
             self.header_start = 2
     
     def eth_addr (self, a):
         '''
-            Return the ethernet header in proper format
+            Description : Return the ethernet header MAC address 
+                          in proper format
+            
+            input_param : a - string contains the MAC address
+            input_type : string 
+            
+            out_param : b - MAC address in proper format
+            out_type : string
+            
         '''
         b = "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x" % (ord(a[0]) , ord(a[1]) , ord(a[2]), ord(a[3]), ord(a[4]) , ord(a[5]))
         return b
     
     def get_details(self, packet):
         '''
-           Returns the ethernet header details present 
-           in the given packet
+           Description : Assigns values to the ethernet header class 
+                         attributes from the details present 
+                         in the given packet
+           
+           input_param : packet - packet received in the interface
+           input_type : bytes array
+           
         '''
         eth_header = packet[self.header_start:self.hdr_length]
         eth = unpack('!6s6sH' , eth_header)

@@ -1,12 +1,31 @@
 import urllib2
 import settings
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 def open_server_connection(args):
-    """
-        Connects with the couch db server and 
-        returns the connection handler 
-    """
+    '''
+        Description : Connects with the couch db server and 
+                      returns the connection handler 
+        
+        input_param : args - Details of the URL informations needed to open
+                      the connection
+        input_type : dict
+        
+        out_param : connection - Connection class instance having details
+                    of opened connection
+        out_type : Connection
+        
+        sample_output :
+        sample_input : {
+            'url' : 'http://127.0.0.1:5984/db/document',
+            'method' : 'GET',
+            'data' : JSON_DATA
+        }
+    '''
     # create a handler.
     handler = urllib2.HTTPHandler()
 
@@ -23,13 +42,23 @@ def open_server_connection(args):
     try:
         connection = opener.open(request)
     except (urllib2.HTTPError, urllib2.URLError) as e:
+        logger.exception("Exception Opening URL ")
         return e
     return connection
 
 def configure_db():
-    """
-        Configures the Couch db server and creats the DB in that
-    """
+    '''
+        Description : Configures the Couch db server and creats the DB in that
+        
+        input_param : 
+        input_type : 
+        
+        out_param : True/False - returns bool value based on the 
+                    successful configuration of DB
+        out_type : BOOLEAN
+        
+        sample_output :
+    '''
     url = settings.BASE_URL
     args = {
         "method" : "PUT",
@@ -39,13 +68,30 @@ def configure_db():
     try:
         return True if connection and connection.code in [201, 412] else False
     except AttributeError as e:
+        logger.exception("Exception while configuring DB")
         return False
 
 def retrive_document_details(args):
-    """
-      Retrievs the details of documents with given URL.
-      URL may point to document/view/show/list
-    """
+    '''
+        Description : Retrievs the details of documents with given URL.
+                      URL may point to document/view/show/list
+        
+        input_param : args - Details of the document that need to be retrieved
+        input_type : dict
+        
+        out_param : doc_details - details of the retrieved document
+        out_type : dict
+        
+        sample_output : {
+            'response_code': 200 ,
+            'document_data: {}
+        }
+        sample_input : {
+            'url' : 'http://127.0.0.1:5984/db/document',
+            'method' : 'GET',
+            'data' : JSON_DATA
+        }
+    '''
     # Query the document details
     connection = open_server_connection(args)
     doc_details = { 
@@ -56,9 +102,28 @@ def retrive_document_details(args):
     return doc_details
 
 def upload_document(args):
-    """
-      uploads the document in the db
-    """
+    '''
+        Description : uploads the given details of documents with given URL.
+        
+        input_param : args - Details of the document that need to be uploaded
+        input_type : dict
+        
+        out_param : doc_details - details of the upload result
+        out_type : dict
+        
+        sample_output : {
+            'status': False,
+            'resp_text' : 'failure',
+            'reason': 'document already present',
+            'already_present': True
+        }
+        sample_input : {
+            'url' : 'http://127.0.0.1:5984/db/document',
+            'method' : 'GET',
+            'data' : JSON_DATA,
+            'override_doc': True
+        }
+    '''
     connection = None
     result = {
                 'status' : None,
@@ -142,6 +207,7 @@ def upload_document(args):
                             'already_present': False
             })
     except Exception as e:
+        logger.error("Exception while uploading document {0}".format(str(e)))
         result.update({
                         'status': False,
                         'resp_text': "Exception Occured while uploading document",
@@ -150,16 +216,24 @@ def upload_document(args):
             })
         if connection:
             connection.close()
-        raise
         return result
     if connection:
         connection.close()
     return result
 
 def prepare_db():
-    """
-      Prepares the Couch DB for normal operations
-    """
+    '''
+        Description : Prepares the Couch DB for normal operations
+        
+        input_param : 
+        input_type : 
+        
+        out_param : True/False - returns bool value based on the 
+                    successful preparation of DB
+        out_type : BOOLEAN
+        
+        sample_output :
+    '''
     design_doc_url = settings.BASE_URL + "/_design/network_packet_analyzer"
     if ( configure_db() ):
         design_doc_args = {

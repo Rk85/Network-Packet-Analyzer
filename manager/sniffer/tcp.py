@@ -3,7 +3,8 @@ from struct import unpack
 
 class TcpHeader(object):
     '''
-        Returns all the details about the TCP protocol details/layer
+         Description : class to store the details of TCP protocol/layer
+        
         sample packet structure
          0                            15                              31
        -----------------------------------------------------------------
@@ -24,7 +25,8 @@ class TcpHeader(object):
     
     def __init__(self, device):
         '''
-           Initialize the header details
+           Description : Initialize the TCP header details
+           
         '''
         self.device = device
         self.src_port = 0
@@ -52,8 +54,13 @@ class TcpHeader(object):
 
     def get_details(self, packet):
         '''
-          Returns the TCP Layer header details present 
-          in the given packet
+           Description : Assigns values to the TCP header class 
+                         attributes from the details present 
+                         in the given packet
+           
+           input_param : packet - packet received in the interface
+           input_type : bytes array
+           
         '''
         tcph = unpack('!HHLLBBHHH' , packet)
         self.src_port = tcph[0]
