@@ -120,6 +120,7 @@ def parse_packet(header, packet) :
         else:
             packet_stats["total_recv_packets"] = packet_stats["total_recv_packets"] + 1
             packet_stats["total_recv_data"] = packet_stats["total_recv_data"] + data_size
+
 def main(argv):
     '''
         Description : Main function to read packet from the dumped file
@@ -140,7 +141,7 @@ def main(argv):
         sys.exit(-1)
  
     # start sniffing packets
-    while(1) :
+    while True :
         packets_read = settings.packet_reader.dispatch(1, parse_packet)
         if not packets_read:
             with open(settings.stats_file, "w") as stats_file:

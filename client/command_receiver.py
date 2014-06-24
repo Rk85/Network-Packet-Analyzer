@@ -46,7 +46,6 @@ def creat_socket():
     try:
         new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         new_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        #new_socket.settimeout(30)
     except Exception as e:
         logger.exception("Unable to create the socket : " + str(e))
         raise

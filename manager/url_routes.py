@@ -58,9 +58,19 @@ def all_clients_details(client_id=None):
                    'url': url
             })
             total_clients = result['document_data']['rows']
+            for client in total_clients:
+                args = json.dumps({
+                        'command_to_send' : 'check_alive',
+                        'ip': client['value']['ip'],
+                        'port': settings.client_port
+                })
+                p = subprocess.Popen(['python', 'command_sender.py', args])
+                p.wait()
+                if p.returncode == 0:
+                    client['value']['active'] = True
             response_data = {  'form' : render_template('configured_clients.html'),
                            'response_data': {
-												'clients': total_clients,
+                                                'clients': total_clients,
                                                 'rules': RULES,
                                                 'client_filters': CLIENT_DISPLAY_FILTERS
 										}
@@ -72,12 +82,9 @@ def all_clients_details(client_id=None):
             result = retrive_document_details({
                    'url': url
             })
-            total_clients = [result['document_data']]
-            response_data = {  'form' : render_template('configured_clients.html'),
+            response_data = {  'form' : render_template('single_client_details.html'),
                            'response_data': {
-												'clients': total_clients,
-                                                'rules': RULES,
-                                                'client_filters': CLIENT_DISPLAY_FILTERS
+                                             'client': result['document_data']
 										}
                         }
             resp = make_response(jsonify(response_data), 200)
@@ -326,3 +333,39 @@ def show_client_statistics():
         resp = make_response(jsonify(response_data), 200)
         return resp
 
+@web_routes.route('/delete', methods=['POST'])
+def delete_clients():
+    """
+        Description : View function to delete the clients
+    
+    """
+    url = settings.BASE_URL + "/" 
+    form_data = request.json if request.json else request.form
+    if form_data.get('clients'):
+        for client_id in form_data.get('clients'):
+            doc_url = url + client_id
+            result = retrive_document_details({
+              'url': doc_url,
+            })
+            print result
+            if result.get('response_code') != 200:
+                resp_text = "client details not present for {0}".format(client_id)
+                response_data = { 'post_response': { 'response_text' : resp_text}}
+                resp = make_response(jsonify(response_data), 400)
+                return resp
+            else:
+                document = result.get('document_data')
+                # Delete the document
+                result = retrive_document_details({
+                    'url': doc_url + "?rev=" + document['_rev'],
+                    'method': "DELETE",
+                })
+                if result.get('response_code') != 200:
+                    resp_text = "Error Happened while deleting client {0}".format(client_id)
+                    response_data = { 'post_response': { 'response_text' : resp_text}}
+                    resp = make_response(jsonify(response_data), 400)
+                    return resp
+    resp_text = "Successfully delete all the clients"
+    response_data = { 'post_response': { 'response_text' : resp_text}}
+    resp = make_response(jsonify(response_data), 200)
+    return resp

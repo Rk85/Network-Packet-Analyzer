@@ -1,0 +1,88 @@
+<div>
+    <br>
+	<div class="row-fluid">
+		<h4 align="center" data-bind="text: clientHeadText"> </h4>
+	</div>
+	<div class="row-fluid">
+		<a data-toggle="collapse" data-parent="#accordion" href="#config_details">Configuration Details</a>
+		<div id="config_details" class="panel-collapse collapse in">
+			<br>
+			<div class="offset1">
+				<pre class="span7"> Host Name : <span data-bind="text: hostName"></span>
+ IP        : <span data-bind="text: ip"></span>
+ Details   : <span data-bind="text: details"></span></pre>
+			</div>
+		</div>
+	</div>
+	<br>
+	<div class="row-fluid">
+		<a data-toggle="collapse" data-parent="#accordion" href="#rule_details">Rule Details</a>
+		<div id="rule_details" class="panel-collapse collapse"> 
+			<br>
+			<div class="offset1">
+				<pre class="span7">Configured Rule : <span data-bind="text: configuredRule"></span></pre>
+			</div>
+		</div>
+	</div>
+	<br>
+	<div class="row-fluid">
+		<a data-toggle="collapse" data-parent="#accordion" href="#packet_details">Packet Details</a>
+		<div id="packet_details" class="panel-collapse collapse">
+			<br>
+			<div class="offset1">
+				<pre class="span7"> Total Data Size          : <span data-bind="text: totDataSize"></span>
+ Total Sent Data Size     : <span data-bind="text: totSentDataSize"></span>
+ Total Received Data Size : <span data-bind="text: totRecvDataSize"></span>
+ Total Packets            : <span data-bind="text: totPackets"></span>
+ Total Sent Packets       : <span data-bind="text: totSentPackets"></span>
+ Total Received Packets   : <span data-bind="text: totRecvPackets"></span></pre>
+			</div>
+		</div>
+	</div>
+</div>
+<script> 
+Application.namespace("Application.PacketAnalyzer");
+
+Application.PacketAnalyzer.SingleClient = function SingleClient(data, $){
+	var self = this;
+	self.hostName = ko.observable(data.host_name);
+	self.ip = ko.observable(data.ip);
+	self.details = ko.observable(data.details);
+	
+	self.configuredRule = ko.computed(function(){
+		var rule = ''
+		$.each(data.rules || [], function(index, value){
+			rule = rule + value.rule_name + ' ' + value.rule_value + ' '
+			if ( value.append_type ){
+				rule = rule + value.append_type + ' '
+			}
+		})
+		return "\"" + rule + "\""; 
+	});
+	
+    self.clientActive = ko.computed(function(){
+			return data.active ? "success" : "warning";
+	});
+    self.clientHeadText = ko.computed(function(){
+		return "Client " + self.hostName() + " Details";
+	})
+    self.stats = data.stats = {}
+	self.totPackets = ko.observable(self.stats.total_packets || 0 );
+	self.totRecvPackets = ko.observable(self.stats.total_recv_packets || 0 );
+    self.totSentPackets = ko.observable(self.stats.total_sent_packets || 0 );
+	self.totDataSize = ko.computed(function(){
+		return self.stats.total_data || 0 + " Bytes";
+	})
+	self.totRecvDataSize = ko.computed(function(){
+		return self.stats.total_recv_data || 0 + " Bytes";
+	})
+	self.totSentDataSize = ko.computed(function(){
+		return self.stats.total_sent_data || 0 + " Bytes";
+	})
+}
+
+var applyFormBindings = function(data, tab_id){
+	ko.applyBindings(new Application.PacketAnalyzer.SingleClient(data.client, jQuery), $(tab_id)[0]);
+};
+
+</script>

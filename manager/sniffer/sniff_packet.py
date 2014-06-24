@@ -48,7 +48,7 @@ def main(argv, selected_device):
         sys.exit(-1)
  
     #start sniffing packets
-    while(1) :
+    while True :
         settings.packet_reader.dispatch(1, dump_packet)
 
 def sigint_handler(signum, frame):

@@ -25,7 +25,7 @@
 						</tr>
 					</thead>
 					<tbody data-bind="foreach: displayClients">
-						<tr>
+						<tr data-bind="css: clientActive">
 							<td>
 			  					<input type="checkbox" class="offset4"  data-bind="checked: selected"></input>
 							</td>
@@ -44,6 +44,7 @@
 				<a class="btn" data-bind="visible:selectedClientDisplayFilterRule().id == 'rule_configured', attr:{ href: '#'+rulePopUpId()}" data-toggle="modal"> Modify Rule </a>
 				<a class="btn" data-bind="click: startCapture, visible:selectedClientDisplayFilterRule().id == 'rule_configured' "> Start Capture </a>
 				<a class="btn" data-bind="click: stopCapture, visible:selectedClientDisplayFilterRule().id == 'capture_started' "> Stop Capture </a>
+				<a class="btn" data-bind="click: deleteClient "> Delete </a>
 			</div>
 		</div>
 	</div>
@@ -127,6 +128,9 @@ var client = function client(data){
 	self.selected = ko.observable(false);
 	self.url = ko.computed(function(){
 		return '#/clients/show/' + self.hostName();
+	});
+    self.clientActive = ko.computed(function(){
+			return data.active ? "success" : "warning";
 	});
 }
 Application.PacketAnalyzer.AllClients = function AllClients(data, $){
@@ -281,6 +285,32 @@ Application.PacketAnalyzer.AllClients = function AllClients(data, $){
 		})
 		$.ajax({
 			url: "/clients/stop/capture",
+			type: "POST",
+			data: ko.toJSON({clients: data}),
+			contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function(result) {
+						self.refreshPage(result.post_response.response_text);
+                    },
+			error: function(xHr, textStatus, httpStatus) {
+					if( xHr.status === 400){
+						result = $.parseJSON(xHr.responseText);
+			     		$.prompt('<h5 class="alert-danger" >' + result.post_response.response_text + "</h5>");
+						return;
+					}
+					$.prompt('<h5 class="alert-danger" >Unknown Error</h5>');
+				}
+		});
+	}
+    
+	self.deleteClient = function deleteClient(){
+		var data = $.map(self.displayClients() || [], function(client){
+			if (client.selected()){
+				return client.hostName();
+			}
+		})
+		$.ajax({
+			url: "/clients/delete",
 			type: "POST",
 			data: ko.toJSON({clients: data}),
 			contentType: "application/json; charset=utf-8",

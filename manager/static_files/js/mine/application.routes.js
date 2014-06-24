@@ -12,9 +12,14 @@ Application.Routing = {
 					context.log("ADD");
 				});
 				this.get("#/clients/show", function(context){
-					var url = "/clients/show"
+					var url = "/clients/show";
 					Application.Tab.addTab("Configured Clients" , url );
-					context.log("SHOW");
+					context.log("MUL SHOW");
+				});
+				this.get("#/clients/show/:ID", function(context){
+					url = "/clients/show/" + this.params['ID']
+					Application.Tab.addTab("Cient Details : " + this.params['ID'] , url );
+					context.log("SING SHOW");
 				});
 				this.get("#/clients/stats", function(context){
 					var url = "/clients/stats"
