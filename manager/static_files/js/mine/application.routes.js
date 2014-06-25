@@ -26,10 +26,10 @@ Application.Routing = {
 					Application.Tab.addTab("Clients Statistics" , url );
 					context.log("STATS");
 				});
-				this.get("#/help", function(context){
-					context.log("#/help");
-					var url = "/help"
-					Application.Tab.addTab("Help Page" , url, true);
+				this.get("#/about", function(context){
+					context.log("#/about");
+					var url = "/about"
+					Application.Tab.addTab("About Page" , url, true);
 				});
 
 			});

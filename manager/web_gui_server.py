@@ -1,4 +1,4 @@
-from flask import Flask,render_template, make_response
+from flask import Flask,render_template, make_response, jsonify
 from jinja2 import ChoiceLoader,BaseLoader
 from werkzeug.wsgi import SharedDataMiddleware
 import os
@@ -59,6 +59,7 @@ class MyTemplateLoader(BaseLoader):
         return source, path, lambda : False
 
 app.register_module(web_routes)
+
 @app.route('/')
 def load_index():
     '''
@@ -74,6 +75,18 @@ def static_files(file_name):
         
     '''
     return send_from_directory('static_files', file_name)
+
+@app.route('/about')
+def about():
+    '''
+        Description : View function to load about page URL
+        
+    '''
+    
+    response_data = { 
+                        'form' : render_template("about.html")
+                    }
+    return make_response(jsonify(response_data), 200)
 
 app.jinja_loader = ChoiceLoader([MyTemplateLoader("templates")])
 
