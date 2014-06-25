@@ -12,6 +12,7 @@ How to install:
 Server Side:
 ===========
 	1. Please refer the following link to install the Couch DB server 
+		* http://wiki.apache.org/couchdb/Installation
 
 Client Side:
 ===========
